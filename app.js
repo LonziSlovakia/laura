@@ -46,10 +46,9 @@
   const HEART_FILL = `<svg viewBox="0 0 24 24">${P.heart}</svg>`;
 
   /* ---------- Stav ---------- */
-  const D = window.LOVE_DATA || {};
-  D.settings = D.settings || {};
-  D.memories = D.memories || [];
-  D.places = D.places || [];
+  // dáta prichádzajú z databázy (db.js), editor do nich zapisuje priamo
+  const D = { settings: {}, memories: [], places: [] };
+  const useData = (d) => { D.settings = d.settings || {}; D.memories = d.memories || []; D.places = d.places || []; };
 
   const App = (window.App = {
     data: D,
@@ -1103,17 +1102,33 @@
   App.renderAll = renderAll;
 
   /* ---------- Štart ---------- */
-  renderAll();
-  requestAnimationFrame(moveInk);
-  document.fonts && document.fonts.ready.then(moveInk);
+  function start() {
+    renderAll();
+    requestAnimationFrame(moveInk);
+    document.fonts && document.fonts.ready.then(moveInk);
 
-  const hashId = decodeURIComponent(location.hash.slice(1));
-  fitAll(false, "ours");
-  addBaseMap(); // až po nastavení výrezu, aby sa sťahovali iba potrebné dlaždice
-  if (hashId && D.memories.some((m) => m.id === hashId)) {
-    setTimeout(() => openMemory(hashId), 300);
-  } else if (!store.get("introSeen") && D.settings.introTitle) {
-    setTimeout(openIntro, 500);
+    const hashId = decodeURIComponent(location.hash.slice(1));
+    fitAll(false, "ours");
+    addBaseMap(); // až po nastavení výrezu, aby sa sťahovali iba potrebné dlaždice
+    if (hashId && D.memories.some((m) => m.id === hashId)) {
+      setTimeout(() => openMemory(hashId), 300);
+    } else if (!store.get("introSeen") && D.settings.introTitle) {
+      setTimeout(openIntro, 500);
+    }
+  }
+  // ak už stránka bola otvorená, ukáže sa hneď posledná verzia a čerstvé dáta sa doplnia,
+  // pri prvej návšteve sa na ne počká (zvyčajne zlomok sekundy)
+  const DB = window.DB;
+  if (DB.cached) {
+    useData(DB.cached);
+    start();
+    DB.fresh.then((d) => {
+      if (DB.wrote || JSON.stringify(d) === JSON.stringify(DB.cached)) return;
+      useData(d);
+      renderAll();
+    }, () => {});
+  } else {
+    DB.fresh.then(useData, () => toast("Spomienky sa nepodarilo načítať. Skontroluj internet a obnov stránku.", 6000)).then(start);
   }
 
   // offline cache (rýchlejšie ďalšie otvorenie): funguje na https (Netlify) a na localhoste

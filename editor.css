@@ -1,8 +1,6 @@
 /* Editor: zobrazí sa iba s ?edit v adrese */
 .ed-fab { background: linear-gradient(140deg, var(--rose-2), var(--rose)) !important; color: #fff !important; border-color: transparent !important; }
 .ed-fab:hover { color: #fff !important; }
-.ed-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--lilac); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; border: 2px solid #fff; }
-.ed-badge:empty { display: none; }
 
 .ed {
   position: fixed; z-index: 900; top: calc(var(--gap) + var(--safe-t)); right: var(--gap);
@@ -86,11 +84,17 @@ body.ed-picking .leaflet-container { cursor: crosshair; }
 
 .ed-foot { padding: 12px 14px; border-top: 1px dashed rgba(230, 62, 107, 0.2); display: flex; flex-direction: column; gap: 8px; }
 .ed-status { font-size: 12.5px; font-weight: 800; color: var(--ink-2); text-align: center; }
-.ed-status.dirty { color: var(--rose-deep); }
-.ed-foot .btns { display: flex; gap: 8px; }
-.ed-foot .btn { flex: 1; height: 44px; padding: 0 10px; font-size: 13.5px; }
+.ed-logout { align-self: center; font-size: 12.5px; font-weight: 800; color: var(--ink-3); text-decoration: underline; transition: color 0.2s; }
+.ed-logout:hover { color: var(--rose-deep); }
+
+/* bez prihlásenia je vidno iba prihlasovací formulár */
+.ed-login { display: none; flex-direction: column; gap: 12px; }
+.ed.locked .ed-login { display: flex; }
+.ed.locked .ed-tabs, .ed.locked .ed-form, .ed.locked .ed-foot { display: none; }
+.btn:disabled { opacity: 0.7; cursor: progress; }
 
 @media (max-width: 819px) {
   .ed { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; height: 88dvh; border-radius: 28px 28px 0 0; transform: translateY(105%); }
   body.ed-picking .ed { transform: translateY(calc(100% - 64px)); }
+  .ed.locked { height: auto; }
 }

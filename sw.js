@@ -1,6 +1,7 @@
 /* Service worker: pamätá si knižnice, mapové dlaždice a fotky, takže ďalšie otvorenie je
-   rýchle (a funguje to aj bez internetu). Stránka a data.js sa vždy najprv skúsia stiahnuť
-   nanovo, takže nové spomienky sa ukážu hneď po nahratí.
+   rýchle (a funguje to aj bez internetu). Stránka sa vždy najprv skúsi stiahnuť nanovo.
+   Spomienky z databázy si pamätá db.js sám, fotky z databázy sa ukladajú sem (majú náhodné
+   mená, takže sa nikdy nemenia).
    Ak zmeníš súbory vo vendor/, zvýš VERSION. */
 const VERSION = "v1";
 const CORE = `core-${VERSION}`;
@@ -43,17 +44,19 @@ self.addEventListener("fetch", (e) => {
     if (url.pathname.includes("/photos/")) return e.respondWith(cacheFirst(e, req, PHOTOS));
     return e.respondWith(networkFirst(req, PAGES, 3500));
   }
+  if (url.hostname.endsWith(".supabase.co") && url.pathname.includes("/storage/v1/object/public/")) return e.respondWith(cacheFirst(e, req, PHOTOS, { cors: true }));
   if (url.hostname === "tiles.versatiles.org") return e.respondWith(cacheFirst(e, req, MAP, { maxAge: MAP_AGE, maxEntries: MAP_MAX }));
   if (url.hostname === "fonts.googleapis.com" || url.hostname === "fonts.gstatic.com") return e.respondWith(cacheFirst(e, req, CORE));
-  // ostatné (vyhľadávanie miest, záložná mapa, knižnice editora) idú normálne cez internet
+  // ostatné (databáza, vyhľadávanie miest, záložná mapa, knižnice editora) idú normálne cez internet
 });
 
-async function cacheFirst(e, req, name, { maxAge = 0, maxEntries = 0 } = {}) {
+async function cacheFirst(e, req, name, { maxAge = 0, maxEntries = 0, cors = false } = {}) {
   const cache = await caches.open(name);
   const hit = await cache.match(req);
   if (hit && (!maxAge || Date.now() - (+hit.headers.get("x-sw-at") || 0) < maxAge)) return hit;
   try {
-    const res = await fetch(req);
+    // <img> sa pýta bez CORS a taká odpoveď sa nedá rozumne uložiť, preto ju stiahneme s CORS
+    const res = await fetch(cors ? new Request(req.url, { mode: "cors", credentials: "omit" }) : req);
     if (res.ok) e.waitUntil(store(cache, req, res.clone(), maxEntries));
     return res;
   } catch (err) {

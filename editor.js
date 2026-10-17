@@ -1,7 +1,8 @@
-/* Editor spomienok a miest. Načíta sa iba keď je v adrese ?edit */
+/* Editor spomienok a miest. Načíta sa iba keď je v adrese ?edit.
+   Po prihlásení sa každá zmena hneď uloží do databázy (db.js), takže ju Laura uvidí bez nahrávania súborov. */
 (() => {
   "use strict";
-  const App = window.App, D = App.data, ic = App.ic, P = App.P, esc = App.esc, toast = App.toast;
+  const App = window.App, D = App.data, DB = window.DB, ic = App.ic, P = App.P, esc = App.esc, toast = App.toast;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -13,12 +14,10 @@
   const loadScript = (url) => new Promise((ok, fail) => { const s = document.createElement("script"); s.src = url; s.onload = ok; s.onerror = fail; document.head.appendChild(s); });
   const libs = {
     exifr: () => (window.exifr ? Promise.resolve() : loadScript("https://unpkg.com/exifr@7.1.3/dist/lite.umd.js")),
-    zip: () => (window.JSZip ? Promise.resolve() : loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js")),
   };
   libs.exifr().catch(() => {});
 
-  const pending = new Map(); // cesta -> Blob (nové fotky, ešte neuložené)
-  let dirty = 0;
+  const pending = new Map(); // cesta -> Blob (nové fotky, ešte nenahraté)
   const uid = (p) => p + "-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
@@ -27,7 +26,7 @@
   fab.className = "icon-btn ed-fab";
   fab.dataset.tip = "Editor";
   fab.setAttribute("aria-label", "Editor");
-  fab.innerHTML = `${ic("edit")}<span class="ed-badge" id="edBadge"></span>`;
+  fab.innerHTML = ic("edit");
   $("#actions").prepend(fab);
 
   const ed = document.createElement("div");
@@ -40,6 +39,12 @@
       <button class="ed-tab" data-f="set">Nastavenia</button>
     </div>
     <div class="ed-body">
+      <form class="ed-login" id="fLogin">
+        <p class="hint">Prihlás sa a všetko, čo pridáš alebo zmeníš, sa hneď uloží na web. Laura to uvidí pri ďalšom otvorení stránky.</p>
+        <label class="fld"><span>E-mail</span><input type="email" name="email" autocomplete="username" required></label>
+        <label class="fld"><span>Heslo</span><input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="btn primary big" type="submit">${ic("heart")}Prihlásiť sa</button>
+      </form>
       <form class="ed-form is-active" id="fMem" autocomplete="off">
         <div class="ed-mode" id="memMode" hidden><span>Upravuješ spomienku</span><button type="button" data-reset>zrušiť</button></div>
         <label class="drop" id="drop">${ic("plus")}Pretiahni sem fotky alebo klikni
@@ -83,21 +88,17 @@
         <label class="fld"><span>Nadpis úvodu</span><input name="introTitle"></label>
         <label class="fld"><span>Text úvodu</span><textarea name="introText"></textarea></label>
         <p class="hint">Úvod sa zobrazí iba pri prvej návšteve. Znova sa dá otvoriť kliknutím na srdiečko vľavo hore.</p>
-        <button class="btn primary big" type="submit">Použiť</button>
+        <button class="btn primary big" type="submit" id="setSubmit">Uložiť nastavenia</button>
       </form>
     </div>
     <div class="ed-foot">
-      <div class="ed-status" id="edStatus">Všetko je uložené</div>
-      <div class="btns">
-        <button class="btn primary" id="saveDir">Uložiť do priečinka</button>
-        <button class="btn" id="saveZip">Stiahnuť ZIP</button>
-      </div>
+      <div class="ed-status" id="edStatus"></div>
+      <button type="button" class="ed-logout" id="edLogout">Odhlásiť</button>
     </div>`;
   document.body.appendChild(ed);
-  if (!window.showDirectoryPicker) $("#saveDir").hidden = true;
 
-  const fMem = $("#fMem"), fPlace = $("#fPlace"), fSet = $("#fSet");
-  const open = () => { document.body.classList.add("ed-open"); App.closeDetail(); syncDraft(); };
+  const fMem = $("#fMem"), fPlace = $("#fPlace"), fSet = $("#fSet"), fLogin = $("#fLogin");
+  const open = () => { document.body.classList.add("ed-open"); App.closeDetail(); syncLock(); syncDraft(); };
   // zatvorenie editora (X alebo klik do mapy) zruší rozrobenú úpravu existujúcej veci,
   // takže zelený špendlík zmizne a pôvodný sa vráti
   const close = () => {
@@ -124,21 +125,78 @@
   }
   $(".ed-tabs", ed).addEventListener("click", (e) => { const t = e.target.closest(".ed-tab"); if (t) showForm(t.dataset.f); });
 
-  function markDirty() {
-    dirty++;
-    $("#edBadge").textContent = dirty;
-    const s = $("#edStatus");
-    s.textContent = `${dirty} neuložen${dirty === 1 ? "á zmena" : dirty < 5 ? "é zmeny" : "ých zmien"}, nezabudni uložiť`;
-    s.classList.add("dirty");
+  /* ---------- Prihlásenie ---------- */
+  let afterLogin = null;
+  const locked = () => !DB.user();
+  function syncLock() {
+    ed.classList.toggle("locked", locked());
+    const u = DB.user();
+    $("#edStatus").textContent = u ? `${u.email} · zmeny sa ukladajú hneď ♥` : "";
   }
-  function markClean() {
-    dirty = 0;
-    $("#edBadge").textContent = "";
-    const s = $("#edStatus");
-    s.textContent = "Všetko je uložené ♥";
-    s.classList.remove("dirty");
+  // úprava/mazanie bez prihlásenia otvorí prihlásenie a po ňom sa akcia dokončí
+  function needLogin(then) {
+    if (!locked()) return true;
+    afterLogin = then;
+    open();
+    setTimeout(() => fLogin.elements.email.focus(), 350);
+    toast("Najprv sa prihlás ♥");
+    return false;
   }
-  addEventListener("beforeunload", (e) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+  fLogin.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = fLogin.querySelector("[type=submit]"), html = btn.innerHTML;
+    btn.disabled = true;
+    btn.textContent = "Prihlasujem…";
+    try {
+      await DB.signIn(fLogin.elements.email.value.trim(), fLogin.elements.password.value);
+      fLogin.reset();
+      syncLock();
+      syncDraft();
+      toast("Ahoj ♥ Si prihlásený.");
+      const then = afterLogin;
+      afterLogin = null;
+      if (then) then();
+    } catch (err) {
+      toast(err.status === 400 ? "Nesprávny e-mail alebo heslo" : err.status ? `Prihlásenie zlyhalo: ${err.message}` : "Bez internetu sa prihlásiť nedá", 4000);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = html;
+    }
+  });
+  $("#edLogout").addEventListener("click", () => {
+    DB.signOut();
+    close();
+    syncLock();
+    toast("Odhlásené");
+  });
+
+  /* Ukladanie: tlačidlo počas neho ukazuje, čo sa deje. Pri chybe ostane formulár vyplnený,
+     takže stačí kliknúť znova. */
+  let busy = 0;
+  async function saving(btn, job) {
+    if (busy) { toast("Ešte ukladám…"); return false; }
+    busy++;
+    const html = btn && btn.innerHTML;
+    if (btn) btn.disabled = true;
+    const say = (t) => { if (btn) btn.textContent = t; };
+    try {
+      say("Ukladám…");
+      await job(say);
+      return true;
+    } catch (err) {
+      console.error(err);
+      if (err.status === 401) { syncLock(); toast("Prihlásenie vypršalo, prihlás sa znova", 4500); }
+      else if (err.status === 403) toast("Tento účet nemá právo zapisovať", 4500);
+      else if (!err.status) toast("Nepodarilo sa uložiť, asi nejde internet. Skús znova.", 4500);
+      else toast(`Nepodarilo sa uložiť: ${err.message}`, 5000);
+      return false;
+    } finally {
+      busy--;
+      if (btn) { btn.disabled = false; btn.innerHTML = html; }
+    }
+  }
+  addEventListener("beforeunload", (e) => { if (busy) { e.preventDefault(); e.returnValue = ""; } });
+  const photoUrls = (photos) => (photos || []).flatMap((p) => (typeof p === "string" ? [p] : [p.src, p.thumb])).filter(Boolean);
 
   /* ---------- Výber polohy ---------- */
   const F = { mem: { id: null, photos: [], lat: null, lng: null, zoom: null }, place: { id: null, lat: null, lng: null, zoom: null } };
@@ -154,7 +212,7 @@
     return [App.memIcon({ id: "_draft", photos: cover ? [cover] : [] }), "m" + (cover ? cover.src : "")];
   }
   function syncDraft() {
-    const which = document.body.classList.contains("ed-open") ? visibleForm() : null;
+    const which = document.body.classList.contains("ed-open") && !locked() ? visibleForm() : null;
     const st = which && F[which];
     const show = !!(st && st.lat != null);
     App.setHidden(show && st.id ? st.id : null);
@@ -339,24 +397,50 @@
     $("#memMode").hidden = true;
     $("#memSubmit").innerHTML = `${ic("heart")}Pridať spomienku`;
   }
-  fMem.addEventListener("submit", (e) => {
+  // nové fotky sa nahrajú do databázy, cesta v nej je rovnaká ako ich dočasné meno
+  async function uploadPhotos(photos, say) {
+    const todo = photos.filter((p) => pending.has(p.src));
+    let k = 0;
+    for (const p of todo) {
+      say(`Nahrávam fotky ${++k}/${todo.length}…`);
+      for (const key of ["src", "thumb"]) {
+        const url = await DB.upload(p[key], pending.get(p[key]));
+        App.srcMap.set(url, App.srcMap.get(p[key])); // kým sa nestiahne z webu, ukazuje sa miestna kópia
+        pending.delete(p[key]);
+        p[key] = url;
+      }
+    }
+  }
+  fMem.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (F.mem.lat == null) { toast("Ešte vyber polohu na mape ♥"); return; }
     const st = F.mem;
-    const m = {
-      id: st.id || uid("m"),
-      date: fMem.elements.date.value,
-      title: fMem.elements.title.value.trim(),
-      place: fMem.elements.place.value.trim(),
-      lat: st.lat,
-      lng: st.lng,
-      zoom: st.zoom || 15,
-      text: fMem.elements.text.value.trim(),
-      photos: st.photos.slice(),
-    };
+    const ok = await saving($("#memSubmit"), async (say) => {
+      await uploadPhotos(st.photos, say);
+      say("Ukladám…");
+      st.saved = {
+        id: st.id || (st.newId = st.newId || uid("m")),
+        date: fMem.elements.date.value,
+        title: fMem.elements.title.value.trim(),
+        place: fMem.elements.place.value.trim(),
+        lat: st.lat,
+        lng: st.lng,
+        zoom: st.zoom || 15,
+        text: fMem.elements.text.value.trim(),
+        photos: st.photos.map((p) => ({ ...p })),
+      };
+      await DB.upsert("memories", st.saved);
+    });
+    if (!ok) return;
+    const m = st.saved;
     const i = D.memories.findIndex((x) => x.id === m.id);
-    i >= 0 ? (D.memories[i] = m) : D.memories.push(m);
-    markDirty();
+    if (i >= 0) {
+      // fotky, ktoré pri úprave vypadli, sa zmažú aj z webu
+      const keep = new Set(photoUrls(m.photos));
+      DB.removeFiles(photoUrls(D.memories[i].photos).filter((u) => !keep.has(u))).catch(() => {});
+      D.memories[i] = m;
+    } else D.memories.push(m);
+    DB.saveCache(D);
     resetMem();
     App.renderAll();
     if (innerWidth < 820) close();
@@ -368,7 +452,7 @@
 
   function editMemory(id) {
     const m = D.memories.find((x) => x.id === id);
-    if (!m) return;
+    if (!m || !needLogin(() => editMemory(id))) return;
     open();
     showForm("mem");
     resetMem();
@@ -384,13 +468,15 @@
     $("#memMode").hidden = false;
     $("#memSubmit").innerHTML = `${ic("heart")}Uložiť úpravy`;
   }
-  function deleteMemory(id) {
+  async function deleteMemory(id) {
     const m = D.memories.find((x) => x.id === id);
-    if (!m || !confirm(`Naozaj zmazať „${m.title}“?`)) return;
+    if (!m || !needLogin(() => deleteMemory(id)) || !confirm(`Naozaj zmazať „${m.title}“?`)) return;
+    if (!(await saving(null, () => DB.remove("memories", id)))) return;
+    DB.removeFiles(photoUrls(m.photos)).catch(() => {});
     D.memories = D.memories.filter((x) => x.id !== id);
+    DB.saveCache(D);
     App.closeDetail();
     App.renderAll();
-    markDirty();
     toast("Spomienka zmazaná");
   }
 
@@ -402,11 +488,11 @@
     $("#placeMode").hidden = true;
     $("#placeSubmit").innerHTML = `${ic("pin")}Pridať miesto`;
   }
-  fPlace.addEventListener("submit", (e) => {
+  fPlace.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (F.place.lat == null) { toast("Ešte vyber polohu na mape ♥"); return; }
     const p = {
-      id: F.place.id || uid("p"),
+      id: F.place.id || (F.place.newId = F.place.newId || uid("p")),
       kind: fPlace.elements.kind.value,
       name: fPlace.elements.name.value.trim(),
       note: fPlace.elements.note.value.trim(),
@@ -414,9 +500,10 @@
       lng: F.place.lng,
       zoom: F.place.zoom || 14,
     };
+    if (!(await saving($("#placeSubmit"), () => DB.upsert("places", p)))) return;
     const i = D.places.findIndex((x) => x.id === p.id);
     i >= 0 ? (D.places[i] = p) : D.places.push(p);
-    markDirty();
+    DB.saveCache(D);
     resetPlace();
     App.renderAll();
     if (innerWidth < 820) close();
@@ -428,7 +515,7 @@
 
   function editPlace(id) {
     const p = D.places.find((x) => x.id === id);
-    if (!p) return;
+    if (!p || !needLogin(() => editPlace(id))) return;
     App.map.closePopup();
     open();
     showForm("place");
@@ -442,13 +529,14 @@
     $("#placeMode").hidden = false;
     $("#placeSubmit").innerHTML = `${ic("pin")}Uložiť úpravy`;
   }
-  function deletePlace(id) {
+  async function deletePlace(id) {
     const p = D.places.find((x) => x.id === id);
-    if (!p || !confirm(`Naozaj zmazať „${p.name}“?`)) return;
+    if (!p || !needLogin(() => deletePlace(id)) || !confirm(`Naozaj zmazať „${p.name}“?`)) return;
+    if (!(await saving(null, () => DB.remove("places", id)))) return;
     D.places = D.places.filter((x) => x.id !== id);
+    DB.saveCache(D);
     App.map.closePopup();
     App.renderAll();
-    markDirty();
     toast("Miesto zmazané");
   }
 
@@ -460,89 +548,25 @@
     fSet.elements.introTitle.value = s.introTitle || "";
     fSet.elements.introText.value = s.introText || "";
   }
-  fSet.addEventListener("submit", (e) => {
+  fSet.addEventListener("submit", async (e) => {
     e.preventDefault();
-    Object.assign(D.settings, {
+    const s = {
+      ...D.settings,
       title: fSet.elements.title.value.trim(),
       together: fSet.elements.together.value,
       introTitle: fSet.elements.introTitle.value.trim(),
       introText: fSet.elements.introText.value.trim(),
-    });
-    markDirty();
+    };
+    if (!(await saving($("#setSubmit"), () => DB.saveSettings(s)))) return;
+    D.settings = s;
+    DB.saveCache(D);
     App.renderAll();
-    toast("Nastavenia použité ✓");
-  });
-
-  /* ---------- Uloženie ---------- */
-  function serialize() {
-    const clean = { settings: D.settings, memories: App.mems(), places: D.places };
-    return (
-      "/* Dáta mapy. Najjednoduchšie ich upravíš cez editor: otvor stránku s ?edit na konci adresy.\n" +
-      "   Ručne sa to dá tiež, je to obyčajný JSON. */\n" +
-      "window.LOVE_DATA = " + JSON.stringify(clean, null, 2) + ";\n"
-    );
-  }
-  function usedPending() {
-    const used = new Set();
-    for (const m of D.memories) for (const p of m.photos || []) { if (p.src) used.add(p.src); if (p.thumb) used.add(p.thumb); }
-    if (F.mem.photos) for (const p of F.mem.photos) { used.add(p.src); used.add(p.thumb); }
-    return [...pending].filter(([path]) => used.has(path));
-  }
-
-  let dirHandle = null;
-  async function writeFile(dir, name, data) {
-    const fh = await dir.getFileHandle(name, { create: true });
-    const w = await fh.createWritable();
-    await w.write(data);
-    await w.close();
-  }
-  $("#saveDir").addEventListener("click", async () => {
-    try {
-      if (!dirHandle) {
-        const h = await showDirectoryPicker({ id: "laskova-mapa", mode: "readwrite" });
-        try { await h.getFileHandle("index.html"); } catch (e) { toast("Vyber priečinok mapalasky (ten, kde je index.html)", 4000); return; }
-        dirHandle = h;
-      }
-      const photos = await dirHandle.getDirectoryHandle("photos", { create: true });
-      const thumbs = await photos.getDirectoryHandle("thumbs", { create: true });
-      for (const [path, blob] of usedPending()) {
-        const name = path.split("/").pop();
-        await writeFile(path.startsWith("photos/thumbs/") ? thumbs : photos, name, blob);
-        pending.delete(path);
-      }
-      await writeFile(dirHandle, "data.js", serialize());
-      markClean();
-      toast("Uložené do priečinka ♥ Teraz to už len nahraj na web.", 4000);
-    } catch (err) {
-      if (err && err.name === "AbortError") return;
-      console.error(err);
-      toast("Uloženie do priečinka zlyhalo, skús Stiahnuť ZIP", 4000);
-    }
-  });
-  $("#saveZip").addEventListener("click", async () => {
-    try {
-      await libs.zip();
-      const zip = new JSZip();
-      zip.file("data.js", serialize());
-      for (const [path, blob] of usedPending()) zip.file(path, blob);
-      const blob = await zip.generateAsync({ type: "blob" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `mapa-update-${ymd(new Date())}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-      markClean();
-      toast("ZIP stiahnutý. Rozbaľ ho do priečinka mapalasky a prepíš súbory.", 5000);
-    } catch (err) {
-      console.error(err);
-      toast("ZIP sa nepodarilo vytvoriť", 4000);
-    }
+    toast("Nastavenia uložené ✓");
   });
 
   /* ---------- Napojenie na mapu ---------- */
   App.editHooks = { editMemory, deleteMemory, editPlace, deletePlace };
+  syncLock();
   App.renderAll();
-  toast("Režim úprav je zapnutý ✎", 2500);
+  toast(locked() ? "Režim úprav: prihlás sa cez ceruzku ✎" : "Režim úprav je zapnutý ✎", 2500);
 })();
