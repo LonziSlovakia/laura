@@ -42,7 +42,8 @@ body {
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
-h1, h2, h3, .font-round { font-family: "Fredoka", "Nunito", sans-serif; font-weight: 600; }
+/* Baloo 2: zaoblené ako Fredoka, ale má všetky slovenské písmená (Fredoka nemá č, ď, ľ, ň, ť…) */
+h1, h2, h3, .font-round { font-family: "Baloo 2", "Nunito", sans-serif; font-weight: 700; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
 svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
@@ -365,7 +366,7 @@ body.story-on .story-ctl { display: flex; animation: popIn 0.4s var(--spring); }
   box-shadow: var(--shadow);
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
-.tl-tip b { font-family: "Fredoka", sans-serif; font-weight: 500; font-size: 14px; }
+.tl-tip b { font-family: "Baloo 2", sans-serif; font-weight: 600; font-size: 14px; }
 .tl-tip span { opacity: 0.75; font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
 .tl-tip::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -7px; border: 7px solid transparent; border-top-color: var(--ink); }
 .tl-tip.is-on { opacity: 1; transform: translate(-50%, 0) scale(1); }
@@ -430,7 +431,7 @@ body.story-on .story-ctl { display: flex; animation: popIn 0.4s var(--spring); }
 .mcl.n4 .mcl-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 .mcl-grid > i[data-more]::after {
   content: attr(data-more); position: absolute; inset: 0; display: grid; place-items: center;
-  background: rgba(58, 36, 48, 0.5); color: #fff; font: 600 13px "Fredoka", sans-serif;
+  background: rgba(58, 36, 48, 0.5); color: #fff; font: 700 13px "Baloo 2", sans-serif;
 }
 .mcl:hover { transform: scale(1.08) translateY(-3px); }
 .mcl:hover::before { transform: rotate(11deg) translate(5px, -3px); }
@@ -458,7 +459,7 @@ body.story-on .story-ctl { display: flex; animation: popIn 0.4s var(--spring); }
 .pp-kind { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--rose); }
 .pp-kind.wish { color: var(--lilac); }
 .pp-kind svg { width: 12px; height: 12px; fill: currentColor; }
-.pp-name { font-family: "Fredoka", sans-serif; font-weight: 600; font-size: 18px; margin: 0 0 4px; color: var(--ink); }
+.pp-name { font-family: "Baloo 2", sans-serif; font-weight: 700; font-size: 18px; margin: 0 0 4px; color: var(--ink); }
 .love-popup .leaflet-popup-content .pp-note { font-size: 13.5px; line-height: 1.5; color: var(--ink-2); margin: 0; white-space: pre-line; }
 .pp-edit { display: flex; gap: 8px; margin-top: 14px; }
 .pp-edit .btn { height: 34px; padding: 0 14px; font-size: 12.5px; }
