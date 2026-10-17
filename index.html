@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Naša mapa</title>
+  <meta name="theme-color" content="#fff3ef">
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23ff5d84' d='M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <!-- mapa: knižnice sú priamo v projekte, dlaždice a písmo mapy sa začnú sťahovať hneď -->
+  <link rel="preconnect" href="https://tiles.versatiles.org" crossorigin>
+  <link rel="preload" href="vendor/maplibre-gl-5.24.0.js" as="script" fetchpriority="low">
+  <link rel="preload" href="map-style.json" as="fetch" crossorigin>
+  <link rel="preload" href="https://tiles.versatiles.org/assets/glyphs/noto_sans_regular/0-255.pbf" as="fetch" crossorigin>
+  <link rel="preload" href="https://tiles.versatiles.org/assets/glyphs/noto_sans_regular/256-511.pbf" as="fetch" crossorigin>
+  <link rel="stylesheet" href="vendor/leaflet-1.9.4.css">
+  <link rel="stylesheet" href="vendor/markercluster-1.5.3.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="map" aria-label="Mapa našich spomienok"></div>
+  <div class="map-loading" id="mapLoading"><span></span>Načítavam mapu…</div>
+
+  <!-- Hlavička -->
+  <header class="topbar glass">
+    <button class="logo" id="logoBtn" aria-label="Zobraziť úvod"><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z"/></svg></button>
+    <div class="topbar-text">
+      <h1 id="title">Naša mapa</h1>
+      <button class="counter" id="counter" aria-label="Ako dlho sme spolu"></button>
+    </div>
+  </header>
+
+  <!-- Akčné tlačidlá -->
+  <div class="actions" id="actions">
+    <button class="icon-btn only-mobile" id="listBtn" data-tip="Zoznam" aria-label="Zoznam"></button>
+    <button class="icon-btn" id="randomBtn" data-tip="Náhodná spomienka" aria-label="Náhodná spomienka"></button>
+    <button class="icon-btn" id="fitBtn" data-tip="Ukázať všetko" aria-label="Ukázať všetko"></button>
+  </div>
+
+  <!-- Bočný panel / spodný sheet na mobile -->
+  <aside class="panel glass" id="panel">
+    <div class="sheet-handle only-mobile"></div>
+    <div class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="memories" role="tab">Spomienky <span class="tab-count" id="cntMem">0</span></button>
+      <button class="tab" data-tab="fav" role="tab">Obľúbené <span class="tab-count" id="cntFav">0</span></button>
+      <button class="tab" data-tab="wish" role="tab">Chceme ísť <span class="tab-count" id="cntWish">0</span></button>
+      <span class="tab-ink" id="tabInk"></span>
+    </div>
+    <div class="list-wrap">
+      <ul class="list" id="list"></ul>
+    </div>
+    <div class="stats" id="stats"></div>
+  </aside>
+
+  <!-- Detail spomienky -->
+  <section class="detail glass" id="detail" aria-hidden="true">
+    <div class="sheet-handle only-mobile" id="detailHandle"></div>
+    <button class="icon-btn small detail-close" id="detailClose" aria-label="Zavrieť"></button>
+    <div class="detail-scroll">
+      <div class="gallery" id="gallery">
+        <div class="gal-main" id="galMain">
+          <div class="gal-track" id="galTrack"></div>
+          <div class="story-bar" id="storyBar"></div>
+          <button class="gal-arrow prev" id="galPrev" aria-label="Predošlá fotka"></button>
+          <button class="gal-arrow next" id="galNext" aria-label="Ďalšia fotka"></button>
+          <button class="story-resume" id="storyResume" aria-label="Pokračovať v prehrávaní"></button>
+          <span class="gal-zoom" id="galZoom"></span>
+          <div class="gal-dots" id="galDots"></div>
+        </div>
+        <div class="gal-thumbs" id="galThumbs"></div>
+      </div>
+      <div class="detail-body">
+        <div class="chips">
+          <span class="chip chip-date" id="dDate"></span>
+          <span class="chip chip-place" id="dPlace"></span>
+        </div>
+        <h2 id="dTitle"></h2>
+        <p class="detail-text" id="dText"></p>
+        <div class="detail-edit" id="dEdit"></div>
+      </div>
+    </div>
+    <div class="detail-nav">
+      <button class="btn ghost" id="dPrev"></button>
+      <div class="detail-mid">
+        <div class="story-ctl" id="storyCtl">
+          <button class="icon-btn small story-pp" id="storyPP" aria-label="Pozastaviť"></button>
+          <button class="icon-btn small" id="storyStop" aria-label="Zastaviť prehrávanie"></button>
+        </div>
+        <span class="detail-pos" id="dPos"></span>
+      </div>
+      <button class="btn ghost" id="dNext"></button>
+    </div>
+  </section>
+
+  <!-- Časová os -->
+  <nav class="timeline glass" id="timeline" aria-label="Časová os">
+    <button class="play-btn" id="playBtn" aria-label="Prehrať náš príbeh"><span class="play-ring"></span><span class="play-ico" id="playIco"></span></button>
+    <div class="tl-track" id="tlTrack"></div>
+    <div class="tl-tip" id="tlTip"><b></b><span></span></div>
+  </nav>
+
+  <!-- Fotka na celú obrazovku -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <div class="lb-stage" id="lbStage"><img id="lbImg" alt="" draggable="false"></div>
+    <button class="icon-btn lb-close" id="lbClose" aria-label="Zavrieť"></button>
+    <button class="icon-btn lb-prev" id="lbPrev" aria-label="Predošlá"></button>
+    <button class="icon-btn lb-next" id="lbNext" aria-label="Ďalšia"></button>
+    <div class="lb-count" id="lbCount"></div>
+  </div>
+
+  <!-- Úvod -->
+  <div class="intro" id="intro" aria-hidden="true">
+    <div class="intro-card glass">
+      <div class="intro-hearts"><span></span><span></span><span></span></div>
+      <h2 id="introTitle"></h2>
+      <p id="introText"></p>
+      <button class="btn primary big" id="introGo">Poďme na to</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <div class="hearts-layer" id="heartsLayer"></div>
+
+  <script src="vendor/leaflet-1.9.4.js"></script>
+  <script src="vendor/markercluster-1.5.3.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

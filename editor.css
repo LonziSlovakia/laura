@@ -1,0 +1,96 @@
+/* Editor: zobrazí sa iba s ?edit v adrese */
+.ed-fab { background: linear-gradient(140deg, var(--rose-2), var(--rose)) !important; color: #fff !important; border-color: transparent !important; }
+.ed-fab:hover { color: #fff !important; }
+.ed-badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--lilac); color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; border: 2px solid #fff; }
+.ed-badge:empty { display: none; }
+
+.ed {
+  position: fixed; z-index: 900; top: calc(var(--gap) + var(--safe-t)); right: var(--gap);
+  bottom: calc(var(--gap) + var(--safe-b)); width: 420px; max-width: calc(100vw - 2 * var(--gap));
+  border-radius: var(--r-xl); background: var(--glass-strong);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(calc(100% + 40px)); opacity: 0; pointer-events: none;
+  transition: transform 0.5s var(--ease), opacity 0.3s;
+}
+body.ed-open .ed { transform: none; opacity: 1; pointer-events: auto; }
+body.ed-picking .ed { transform: translateX(calc(100% - 70px)); opacity: 0.55; }
+body.ed-picking #map { cursor: crosshair; }
+body.ed-picking .leaflet-container { cursor: crosshair; }
+
+.ed-head { display: flex; align-items: center; gap: 8px; padding: 12px 12px 10px 16px; }
+.ed-head h3 { margin: 0; font-size: 19px; flex: 1; }
+.ed-tabs { display: flex; gap: 4px; padding: 6px; margin: 0 12px; background: rgba(255, 227, 234, 0.55); border-radius: 16px; }
+.ed-tab { flex: 1; height: 34px; border-radius: 12px; font-weight: 800; font-size: 13px; color: var(--ink-2); transition: background 0.2s, color 0.2s, transform 0.2s var(--spring); }
+.ed-tab:hover { color: var(--rose-deep); }
+.ed-tab:active { transform: scale(0.94); }
+.ed-tab.is-active { background: #fff; color: var(--ink); box-shadow: var(--shadow-sm); }
+
+.ed-body { flex: 1; overflow-y: auto; padding: 14px 16px 18px; }
+.ed-form { display: none; flex-direction: column; gap: 12px; }
+.ed-form.is-active { display: flex; }
+.ed-mode { font-size: 12.5px; font-weight: 800; color: var(--rose-deep); background: var(--rose-soft); padding: 7px 12px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; }
+.ed-mode button { color: var(--rose-deep); text-decoration: underline; font-weight: 800; }
+
+.fld { display: flex; flex-direction: column; gap: 5px; }
+.fld > span { font-size: 12.5px; font-weight: 800; color: var(--ink-2); padding-left: 4px; }
+.fld input, .fld textarea {
+  font: inherit; color: var(--ink); width: 100%;
+  border: 2px solid transparent; background: #fff; border-radius: 14px; padding: 10px 13px;
+  box-shadow: inset 0 0 0 1px rgba(58, 36, 48, 0.08);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.fld textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+.fld input:focus, .fld textarea:focus { outline: none; border-color: var(--rose-2); box-shadow: 0 0 0 4px rgba(255, 143, 171, 0.2); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.drop {
+  border: 2.5px dashed rgba(255, 93, 132, 0.4); border-radius: 18px; padding: 18px; text-align: center;
+  color: var(--ink-2); font-weight: 700; font-size: 13.5px; cursor: pointer; background: var(--rose-softer);
+  transition: background 0.2s, border-color 0.2s, transform 0.25s var(--spring);
+}
+.drop:hover, .drop.is-over { background: var(--rose-soft); border-color: var(--rose); transform: scale(1.01); }
+.drop svg.i { width: 28px; height: 28px; color: var(--rose); display: block; margin: 0 auto 6px; }
+.drop small { display: block; font-weight: 600; color: var(--ink-3); margin-top: 3px; }
+.ph-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.ph-grid:empty { display: none; }
+.ph { position: relative; aspect-ratio: 1; border-radius: 14px; background: var(--rose-soft) center/cover; cursor: pointer; transition: transform 0.25s var(--spring); }
+.ph:hover { transform: scale(1.04); }
+.ph.cover { box-shadow: 0 0 0 3px var(--rose); }
+.ph.cover::after { content: "titulná"; position: absolute; left: 4px; bottom: 4px; font-size: 10px; font-weight: 800; color: #fff; background: var(--rose); padding: 2px 6px; border-radius: 6px; }
+.ph-x { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; border: 2px solid #fff; transition: transform 0.2s var(--spring); }
+.ph-x:hover { transform: scale(1.15); background: #d33; }
+.ph-x svg.i { width: 12px; height: 12px; stroke-width: 3; }
+.ph.loading { background: linear-gradient(90deg, var(--rose-soft), #fff, var(--rose-soft)); background-size: 200% 100%; animation: shimmer 1s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+.loc { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 14px; padding: 8px 8px 8px 12px; box-shadow: inset 0 0 0 1px rgba(58, 36, 48, 0.08); }
+.loc-txt { flex: 1; font-size: 13px; font-weight: 700; color: var(--ink-2); min-width: 0; }
+.loc-txt.ok { color: #1f9a75; }
+.loc .btn { height: 36px; padding: 0 12px; font-size: 13px; flex: none; }
+.search { position: relative; }
+.search-res { position: absolute; z-index: 5; left: 0; right: 0; top: calc(100% + 4px); background: #fff; border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; display: none; }
+.search-res.is-on { display: block; }
+.search-res button { display: block; width: 100%; text-align: left; padding: 10px 13px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #f6e8ec; }
+.search-res button:hover { background: var(--rose-softer); color: var(--rose-deep); }
+.search-res button:last-child { border-bottom: 0; }
+
+.seg { display: flex; gap: 6px; }
+.seg label { flex: 1; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg span { display: flex; align-items: center; justify-content: center; gap: 6px; height: 42px; border-radius: 14px; background: #fff; font-weight: 800; font-size: 13.5px; color: var(--ink-2); cursor: pointer; box-shadow: inset 0 0 0 1px rgba(58, 36, 48, 0.08); transition: background 0.2s, color 0.2s, transform 0.2s var(--spring); }
+.seg span:active { transform: scale(0.95); }
+.seg span svg { width: 16px; height: 16px; fill: currentColor; }
+.seg input:checked + span { background: var(--rose-soft); color: var(--rose-deep); box-shadow: inset 0 0 0 2px var(--rose-2); }
+.seg input[value="wish"]:checked + span { background: var(--lilac-soft); color: #6b4fd8; box-shadow: inset 0 0 0 2px var(--lilac); }
+.hint { font-size: 12.5px; color: var(--ink-3); font-weight: 600; line-height: 1.5; margin: 0; }
+
+.ed-foot { padding: 12px 14px; border-top: 1px dashed rgba(230, 62, 107, 0.2); display: flex; flex-direction: column; gap: 8px; }
+.ed-status { font-size: 12.5px; font-weight: 800; color: var(--ink-2); text-align: center; }
+.ed-status.dirty { color: var(--rose-deep); }
+.ed-foot .btns { display: flex; gap: 8px; }
+.ed-foot .btn { flex: 1; height: 44px; padding: 0 10px; font-size: 13.5px; }
+
+@media (max-width: 819px) {
+  .ed { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-width: none; height: 88dvh; border-radius: 28px 28px 0 0; transform: translateY(105%); }
+  body.ed-picking .ed { transform: translateY(calc(100% - 64px)); }
+}
