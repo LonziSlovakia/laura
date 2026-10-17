@@ -26,7 +26,7 @@ Spomienky, miesta, nastavenia aj fotky sú v bezplatnom projekte na **supabase.c
 
 ## Pridanie spomienky
 
-1. Otvor stránku s `?edit` na konci adresy (napr. `…/laura/?edit`), klikni na ceruzku a prihlás sa. Prihlásenie si prehliadač pamätá.
+1. Otvor zoznam a dole klikni **Upraviť mapu** (alebo otvor adresu s `?edit` na konci) a prihlás sa. Prihlásenie si prehliadač pamätá a ceruzka (editor) sa odvtedy ukazuje sama.
 2. Pridaj fotky. **Dátum a GPS sa načítajú priamo z fotky**, a ak fotka má polohu, doplní sa aj názov miesta.
    - Keď fotka polohu nemá (napr. poslaná cez WhatsApp/Messenger, tie ju mažú), vyhľadaj miesto alebo klikni **Na mape**.
    - Zelený špendlík sa dá potiahnuť a polohu tak doladiť.

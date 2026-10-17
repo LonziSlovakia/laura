@@ -1136,10 +1136,15 @@
     addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
   }
 
-  // editor sa načíta iba s ?edit v adrese
-  if (new URLSearchParams(location.search).has("edit")) {
-    const s = document.createElement("script");
-    s.src = "editor.js";
-    document.body.appendChild(s);
-  }
+  // editor sa načíta s ?edit v adrese, cez „Upraviť mapu“ dole v paneli, alebo sám,
+  // keď je v tomto prehliadači niekto prihlásený
+  let editorLoading = null;
+  const loadEditor = () => (editorLoading = editorLoading || loadScript("editor.js"));
+  const editLink = $("#editLink");
+  editLink.innerHTML = `${ic("edit")}Upraviť mapu`;
+  editLink.addEventListener("click", () => {
+    closePanel();
+    loadEditor().then(() => App.openEditor(), () => toast("Editor sa nepodarilo načítať"));
+  });
+  if (new URLSearchParams(location.search).has("edit") || DB.user()) loadEditor();
 })();

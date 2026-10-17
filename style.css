@@ -198,6 +198,10 @@ svg.i { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-widt
 .stats span { display: inline-flex; align-items: center; gap: 5px; }
 .stats b { color: var(--rose-deep); }
 .stats svg.i { width: 15px; height: 15px; color: var(--rose-2); }
+.edit-link { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -4px auto 12px; padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: 800; color: var(--ink-3); transition: color 0.2s, background 0.2s; }
+.edit-link svg.i { width: 13px; height: 13px; }
+.edit-link:hover { color: var(--rose-deep); background: var(--rose-softer); }
+.has-editor .edit-link { display: none; }
 
 /* ============ Detail ============ */
 .detail {

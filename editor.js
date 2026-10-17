@@ -568,5 +568,7 @@
   App.editHooks = { editMemory, deleteMemory, editPlace, deletePlace };
   syncLock();
   App.renderAll();
-  toast(locked() ? "Režim úprav: prihlás sa cez ceruzku ✎" : "Režim úprav je zapnutý ✎", 2500);
+  App.openEditor = open;
+  document.body.classList.add("has-editor");
+  if (new URLSearchParams(location.search).has("edit")) toast(locked() ? "Režim úprav: prihlás sa cez ceruzku ✎" : "Režim úprav je zapnutý ✎", 2500);
 })();
