@@ -5,13 +5,28 @@ Stav k 18. 10. 2026.
 
 ## Ako je to postavené
 
-- **Hosting:** každá stránka bude samostatný verejný repozitár na GitHub Pages:
-  - `https://lonzislovakia.github.io/laura/` (mapa spomienok, hotová)
-  - `https://lonzislovakia.github.io/fulka/` (florbalová liga, ešte neexistuje)
+- **Hosting:** každá stránka je samostatný verejný repozitár na GitHub Pages (účet `LonziSlovakia`):
+  - `https://lonzislovakia.github.io/laura/`: mapa spomienok, **beží**. Repozitár `LonziSlovakia/laura`, priečinok `~/projects/laura/mapalasky`.
+  - `https://lonzislovakia.github.io/fulka/`: florbalová liga, ešte neexistuje.
   - Stránky sú statické (HTML/CSS/JS, bez buildu a bez servera). Dáta a fotky nie sú v repozitári, ale v Supabase.
 - **Databáza:** jeden bezplatný Supabase projekt `lonzi-weby` pre všetky weby.
   - Je bez platobnej karty, takže nemôžu prísť žiadne poplatky. Keď sa minie limit, služba sa iba obmedzí.
   - Každý web má vlastné tabuľky s predponou (`laura_…`, `fulka_…`) a vlastný bucket na fotky (`laura`, `fulka`).
+
+## GitHub (už nastavené na tomto počítači)
+
+- `gh` CLI je v `~/.local/bin/gh` a je prihlásený ako `LonziSlovakia`, s oprávneniami `repo` a `workflow` (workflow treba na nahrávanie `.github/workflows`).
+- **Commity používajú skrytú adresu**, aby vo verejnom repozitári nebol súkromný e-mail. V každom novom repozitári pred prvým commitom nastaviť:
+  `git config user.email "72870876+LonziSlovakia@users.noreply.github.com"`
+- Nový web na GitHub Pages:
+  ```bash
+  touch .nojekyll                      # GitHub nebude súbory prehadzovať cez Jekyll
+  gh repo create LonziSlovakia/fulka --public --source=. --remote=origin --push
+  gh api -X POST repos/LonziSlovakia/fulka/pages -f "source[branch]=main" -f "source[path]=/"
+  gh api repos/LonziSlovakia/fulka/pages --jq .status   # počkať na "built" (1 – 2 min)
+  ```
+- Ďalšie zmeny kódu: `git commit` a `git push`. Web sa obnoví do 1 – 2 minút.
+- Stránka je v podpriečinku (`/fulka/`), preto používať **iba relatívne cesty** (`app.js`, nie `/app.js`).
 
 ## Pripojenie (verejné údaje, patria do kódu stránky)
 
@@ -40,7 +55,7 @@ Funkcia je `security definer` a vráti true, ak je prihlásený používateľ ad
 | Účet | UID | Weby |
 |---|---|---|
 | Lonzi | `bdde0469-2c9d-4c05-b696-00310f73f3a4` | `laura`, `fulka` |
-| Laura | `7641f5b9-3baf-4d3e-bc6c-40d9c4ad508b` | `laura` |
+| Laura | `7641f5b9-3baf-4d3e-bc6c-40d9c4ad508b` | `laura` (insert je v skripte; ak by nemohla zapisovať, spustiť ho ešte raz) |
 
 Nový admin: `insert into public.admins (user_id, site) values ('<UID>', 'fulka');`
 
@@ -120,11 +135,21 @@ Bez knižnice `supabase-js`, iba `fetch`:
 - Max **2 aktívne projekty** na účet. Preto je jeden projekt pre všetky weby.
 - **Projekt sa uspí po 7 dňoch bez aktivity.**
   - Dáta ostanú, ale API nejde, kým sa v dashboarde neklikne Restore.
-  - Rieši to `.github/workflows/keepalive.yml` v repozitári `laura`: každé 3 dni zavolá REST endpoint a pri chybe pošle e-mail.
+  - **Vyriešené budíkom** `.github/workflows/keepalive.yml` v repozitári `laura`, ktorý beží a bol overený:
+    - každé 3 dni o 6:17 UTC sa opýta `laura_settings?select=id`
+    - pri chybe beh zlyhá a GitHub pošle e-mail
+    - zároveň potvrdí svoj plán, aby ho GitHub po 60 dňoch nevypol
+  - Celý projekt je jeden, takže tento budík drží hore aj `fulka`, **druhý netreba**.
+  - Keby sa repozitár `laura` niekedy zmazal, budík treba presunúť inam.
+  - Prehľad behov: github.com/LonziSlovakia/laura → Actions → Databáza nespí.
   - Pozor: GitHub vypína plánované workflowy vo verejných repo po 60 dňoch bez aktivity.
 
 ## Ďalšie kroky
 
-1. Vytvoriť repozitáre `laura` a `fulka` na GitHube a zapnúť Pages (Settings → Pages → Deploy from branch → `main` / root).
-2. ~~Keep-alive ping proti uspaniu projektu.~~ Hotové (`keepalive.yml`).
-3. Pre `fulka`: spustiť SQL podľa šablóny vyššie a stránku postaviť podľa vzoru `db.js`.
+1. ~~Repozitár a GitHub Pages pre `laura`.~~ Hotové.
+2. ~~Budík proti uspaniu databázy.~~ Hotové.
+3. Mapa: ostrý test nahrania fotky z mobilu (zápis textov do databázy už funguje, nahrávanie fotiek bolo zatiaľ testované iba na simulácii).
+4. `fulka`:
+   - spustiť SQL podľa šablóny vyššie (Supabase → SQL Editor)
+   - stránku postaviť podľa vzoru `db.js`
+   - nasadiť podľa časti GitHub
