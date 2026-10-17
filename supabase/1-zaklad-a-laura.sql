@@ -30,7 +30,8 @@ grant execute on function public.is_admin(text) to anon, authenticated;
 
 insert into public.admins (user_id, site) values
   ('bdde0469-2c9d-4c05-b696-00310f73f3a4', 'laura'),
-  ('bdde0469-2c9d-4c05-b696-00310f73f3a4', 'fulka')
+  ('bdde0469-2c9d-4c05-b696-00310f73f3a4', 'fulka'),
+  ('7641f5b9-3baf-4d3e-bc6c-40d9c4ad508b', 'laura') -- Laura (iba mapa)
 on conflict do nothing;
 
 -- ---------- Mapa lásky ----------

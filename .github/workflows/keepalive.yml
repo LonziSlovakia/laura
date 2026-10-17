@@ -1,0 +1,25 @@
+# Ochrana proti uspaniu databázy: bezplatný Supabase projekt sa po 7 dňoch bez aktivity uspí.
+# Každé 3 dni sa GitHub raz opýta databázy na nastavenia mapy, a to stačí, aby nezaspala.
+# Ak databáza neodpovie, beh zlyhá a GitHub ti pošle e-mail, takže to zistíš skôr ako Laura.
+name: Databáza nespí
+on:
+  schedule:
+    - cron: "17 6 */3 * *" # o 6:17 UTC každý 3. deň
+  workflow_dispatch: # dá sa spustiť aj ručne: Actions → Databáza nespí → Run workflow
+permissions:
+  actions: write
+  contents: read
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Opýtať sa databázy
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-delay 20 --max-time 30 \
+            "https://anovkowkucidkutwghzx.supabase.co/rest/v1/laura_settings?select=id" \
+            -H "apikey: sb_publishable_Z7x71TnM4mW0G_xrniGZsQ_PVCtIjwM"
+      - name: Nenechať GitHub vypnúť tento plán
+        # vo verejnom repozitári GitHub vypne plánované behy po 60 dňoch bez zmien, toto ho znova potvrdí
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/keepalive.yml/enable"

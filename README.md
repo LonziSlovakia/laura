@@ -18,7 +18,8 @@ Mapa spoločných spomienok: fotky na mape, obľúbené miesta, miesta kam chcem
 ## Databáza (Supabase)
 
 Spomienky, miesta, nastavenia aj fotky sú v bezplatnom projekte na **supabase.com** (bez platobnej karty, takže nič nemôžu strhnúť).
-- Čítať môže každý, kto má odkaz na stránku. Zapisovať smie iba účet zapísaný v tabuľke `admins`.
+- Čítať môže každý, kto má odkaz na stránku. Zapisovať smie iba účet zapísaný v tabuľke `admins` (ty a Laura pre stránku `laura`).
+- Nový admin: v Supabase **Authentication → Users → Add user**, skopíruj jeho UID a v SQL Editore spusti `insert into public.admins (user_id, site) values ('UID', 'laura');`
 - Tabuľky a pravidlá vytvorí skript `supabase/1-zaklad-a-laura.sql`: v Supabase otvor **SQL Editor**, vlož ho celý a klikni **Run**.
 - Kľúč v `db.js` je verejný (*publishable*), patrí do stránky. Tajný kľúč (`service_role` / `sb_secret_…`) a heslo k databáze do stránky nikdy nedávaj.
 - Stránka si posledné stiahnuté spomienky pamätá, takže sa otvorí hneď a ukáže ich aj bez internetu.

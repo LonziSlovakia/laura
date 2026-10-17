@@ -40,7 +40,7 @@
     </div>
     <div class="ed-body">
       <form class="ed-login" id="fLogin">
-        <p class="hint">Prihlás sa a všetko, čo pridáš alebo zmeníš, sa hneď uloží na web. Laura to uvidí pri ďalšom otvorení stránky.</p>
+        <p class="hint">Prihlás sa a všetko, čo pridáš alebo zmeníš, sa hneď uloží na web a uvidí to každý, kto stránku otvorí.</p>
         <label class="fld"><span>E-mail</span><input type="email" name="email" autocomplete="username" required></label>
         <label class="fld"><span>Heslo</span><input type="password" name="password" autocomplete="current-password" required></label>
         <button class="btn primary big" type="submit">${ic("heart")}Prihlásiť sa</button>
