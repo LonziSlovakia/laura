@@ -7,7 +7,7 @@ Stav k 18. 10. 2026.
 
 - **Hosting:** každá stránka je samostatný verejný repozitár na GitHub Pages (účet `LonziSlovakia`):
   - `https://lonzislovakia.github.io/laura/`: mapa spomienok, **beží**. Repozitár `LonziSlovakia/laura`, priečinok `~/projects/laura/mapalasky`.
-  - `https://lonzislovakia.github.io/fulka/`: florbalová liga, ešte neexistuje.
+  - `https://lonzislovakia.github.io/fulka/`: florbalová liga, **beží** (verejný web; admin cez `?edit` sa ešte robí). Repozitár `LonziSlovakia/fulka`, priečinok `~/projects/fulka`.
   - Stránky sú statické (HTML/CSS/JS, bez buildu a bez servera). Dáta a fotky nie sú v repozitári, ale v Supabase.
 - **Databáza:** jeden bezplatný Supabase projekt `lonzi-weby` pre všetky weby.
   - Je bez platobnej karty, takže nemôžu prísť žiadne poplatky. Keď sa minie limit, služba sa iba obmedzí.
@@ -71,11 +71,13 @@ Overené: anonymný insert, delete aj upload fotky sú odmietnuté.
   - `admins` a `is_admin()`
   - tabuľky `laura_settings` (1 riadok, `data jsonb`), `laura_memories` a `laura_places`
   - bucket `laura`: verejný, max 8 MB, jpeg/png/webp
-- Pre `fulka` zatiaľ existuje iba záznam v `admins`, tabuľky a bucket treba vytvoriť.
+- Skript `supabase/1-fulka.sql` v repozitári `fulka` už bol spustený. Vytvoril 8 tabuliek `fulka_…` (sezóny, tímy, hráči, súpisky, zápasy, góly, nastavenia) a bucket `fulka`.
+  Overené: 4 tímy, 16 zápasov, 39 hráčov v súpiskách; anonymný zápis je odmietnutý.
 
-## Šablóna SQL pre nový web (napr. fulka)
+## Šablóna SQL pre nový web
 
-Spúšťa sa ručne v Supabase → SQL Editor. Tabuľky sú len príklad, upraviť podľa potreby:
+Pre `fulka` je hotový skript `supabase/1-fulka.sql` v jej repozitári; šablóna ostáva pre ďalšie weby.
+Spúšťa sa ručne v Supabase → SQL Editor. Tabuľky sú len príklad (pôvodný návrh pre fulku), upraviť podľa potreby:
 
 ```sql
 create table if not exists public.fulka_teams   (id text primary key, name text not null, logo text, created_at timestamptz default now(), updated_at timestamptz default now());
@@ -149,7 +151,4 @@ Bez knižnice `supabase-js`, iba `fetch`:
 1. ~~Repozitár a GitHub Pages pre `laura`.~~ Hotové.
 2. ~~Budík proti uspaniu databázy.~~ Hotové.
 3. Mapa: ostrý test nahrania fotky z mobilu (zápis textov do databázy už funguje, nahrávanie fotiek bolo zatiaľ testované iba na simulácii).
-4. `fulka`:
-   - spustiť SQL podľa šablóny vyššie (Supabase → SQL Editor)
-   - stránku postaviť podľa vzoru `db.js`
-   - nasadiť podľa časti GitHub
+4. `fulka`: ~~SQL~~, ~~verejný web~~, ~~GitHub Pages~~ hotové. Zostáva admin (`?edit`) a nahratie fotiek kapitánov cez neho.
